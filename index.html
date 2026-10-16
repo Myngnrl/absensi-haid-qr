@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pemindai QR Absensi</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 520px;
+      margin: 24px auto;
+      padding: 16px;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px #0001;
+    }
+    button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 8px;
+      background: #176b45;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #reader {
+      width: 100%;
+      margin-top: 16px;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 12px;
+      background: #eef3f0;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Pemindai QR Absensi Haid</h2>
+    <p>Tekan tombol di bawah untuk membuka kamera.</p>
+    <button id="startBtn">Buka Kamera</button>
+    <div id="reader"></div>
+    <div id="status" role="status" aria-live="polite">
+      Kamera belum dibuka.
+    </div>
+  </div>
+
+  <script>
+    let scanner = null;
+    let running = false;
+    let processing = false;
+
+    const statusBox = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+
+    startBtn.addEventListener('click', async () => {
+      if (running) return;
+
+      if (!window.isSecureContext) {
+        statusBox.textContent =
+          'Halaman harus dibuka melalui HTTPS.';
+        return;
+      }
+
+      if (!navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
+        statusBox.textContent =
+          'Browser tidak mendukung akses kamera.';
+        return;
+      }
+
+      try {
+        statusBox.textContent = 'Meminta izin kamera...';
+
+        // Tes akses kamera secara langsung.
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false
+          });
+
+        // Lepaskan kamera tes sebelum scanner dimulai.
+        stream.getTracks().forEach(track => track.stop());
+
+        scanner = new Html5Qrcode('reader');
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 230, height: 230 } },
+          async decodedText => {
+            if (processing) return;
+            processing = true;
+
+            statusBox.textContent =
+              'QR berhasil dibaca. Isi QR: ' + decodedText;
+
+            try {
+              await scanner.stop();
+            } catch (e) {}
+
+            running = false;
+            startBtn.textContent = 'Buka Kamera Lagi';
+
+            // Belum mengirim data ke server.
+            // Tahap berikutnya akan menghubungkan QR ke Google Sheets.
+          },
+          () => {}
+        );
+
+        running = true;
+        statusBox.textContent =
+          'Kamera aktif. Arahkan QR ke kotak pemindai.';
+      } catch (err) {
+        statusBox.textContent =
+          'Kamera gagal dibuka: ' + err.name +
+          ' — ' + err.message;
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
