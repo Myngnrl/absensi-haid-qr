@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pemindai QR Absensi</title>
+  <title>Absensi Haid Digital</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
@@ -21,13 +21,21 @@
       border-radius: 16px;
       box-shadow: 0 2px 12px #0001;
     }
-    button {
-      padding: 12px 18px;
-      border: 0;
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
       border-radius: 8px;
+      font-size: 16px;
+    }
+    input {
+      border: 1px solid #bbb;
+    }
+    button {
+      border: 0;
       background: #176b45;
       color: white;
-      font-size: 16px;
       cursor: pointer;
     }
     #reader {
@@ -45,8 +53,14 @@
 </head>
 <body>
   <div class="card">
-    <h2>Pemindai QR Absensi Haid</h2>
-    <p>Tekan tombol di bawah untuk membuka kamera.</p>
+    <h2>Absensi Haid Digital</h2>
+    <p>Masukkan PIN petugas, lalu pindai QR siswi.</p>
+
+    <label for="pin">PIN Petugas</label>
+    <input id="pin" type="password"
+      inputmode="numeric" autocomplete="off"
+      placeholder="Masukkan PIN petugas">
+
     <button id="startBtn">Buka Kamera</button>
     <div id="reader"></div>
     <div id="status" role="status" aria-live="polite">
@@ -55,24 +69,33 @@
   </div>
 
   <script>
+    // Ganti alamat di bawah dengan Web app URL milikmu.
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMDHp0R61Az23eiMjSjLP_tviHFkGkD6y4d0pY3HUO-gOvVptpYPPVQKpm5e8DBdd3hw/exec';
+
     let scanner = null;
     let running = false;
     let processing = false;
 
     const statusBox = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
+    const pinInput = document.getElementById('pin');
 
     startBtn.addEventListener('click', async () => {
-      if (running) return;
+      if (running || processing) return;
 
-      if (!window.isSecureContext) {
+      if (WEB_APP_URL === 'TEMPEL_WEB_APP_URL_DI_SINI') {
         statusBox.textContent =
-          'Halaman harus dibuka melalui HTTPS.';
+          'Alamat Web App belum diisi di kode.';
         return;
       }
 
-      if (!navigator.mediaDevices ||
-          !navigator.mediaDevices.getUserMedia) {
+      if (!pinInput.value.trim()) {
+        statusBox.textContent = 'Masukkan PIN petugas dahulu.';
+        pinInput.focus();
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
         statusBox.textContent =
           'Browser tidak mendukung akses kamera.';
         return;
@@ -81,37 +104,48 @@
       try {
         statusBox.textContent = 'Meminta izin kamera...';
 
-        // Tes akses kamera secara langsung.
-        const stream =
-          await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
-            audio: false
-          });
-
-        // Lepaskan kamera tes sebelum scanner dimulai.
-        stream.getTracks().forEach(track => track.stop());
-
         scanner = new Html5Qrcode('reader');
 
         await scanner.start(
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 230, height: 230 } },
-          async decodedText => {
+          async (token) => {
             if (processing) return;
             processing = true;
 
             statusBox.textContent =
-              'QR berhasil dibaca. Isi QR: ' + decodedText;
+              'QR terbaca. Mengirim permintaan pencatatan...';
 
             try {
               await scanner.stop();
-            } catch (e) {}
+              running = false;
 
-            running = false;
-            startBtn.textContent = 'Buka Kamera Lagi';
+              // Mengirim token dan PIN tanpa membaca respons server.
+              // Hasil akhirnya harus diperiksa di Google Sheets.
+              await fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                  'Content-Type':
+                    'application/x-www-form-urlencoded;charset=UTF-8'
+                },
+                body: new URLSearchParams({
+                  token: token,
+                  pin: pinInput.value.trim()
+                })
+              });
 
-            // Belum mengirim data ke server.
-            // Tahap berikutnya akan menghubungkan QR ke Google Sheets.
+              statusBox.textContent =
+                'Permintaan dikirim. Periksa sheet LogHaid ' +
+                'untuk memastikan pencatatan berhasil.';
+              startBtn.textContent = 'Pindai QR Berikutnya';
+            } catch (err) {
+              statusBox.textContent =
+                'Pengiriman bermasalah. Periksa koneksi dan coba lagi.';
+              startBtn.textContent = 'Coba Lagi';
+            } finally {
+              processing = false;
+            }
           },
           () => {}
         );
@@ -123,7 +157,7 @@
         statusBox.textContent =
           'Kamera gagal dibuka: ' + err.name +
           ' — ' + err.message;
-        console.error(err);
+        running = false;
       }
     });
   </script>
