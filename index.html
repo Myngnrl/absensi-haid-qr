@@ -6,155 +6,225 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Absensi Haid Digital</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
+
   <style>
-    /* Menu utama aplikasi */
-.app-nav {
-  display: flex;
-  gap: 8px;
-  margin: 0 auto 18px;
-  max-width: 700px;
-}
+    * {
+      box-sizing: border-box;
+    }
 
-.app-nav button {
-  flex: 1;
-  padding: 13px 8px;
-  border: 1px solid #d7e5dc;
-  border-radius: 12px;
-  background: #fff;
-  color: #24533b;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.app-nav button.active {
-  background: #176b45;
-  color: #fff;
-  border-color: #176b45;
-}
-
-.app-page {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.app-page.hidden {
-  display: none;
-}
-
-.dashboard-frame {
-  width: 100%;
-  height: 78vh;
-  min-height: 600px;
-  border: 0;
-  border-radius: 14px;
-  background: #fff;
-}
     body {
       font-family: Arial, sans-serif;
-      max-width: 520px;
-      margin: 24px auto;
-      padding: 16px;
-      background: #f5f7fb;
-      color: #222;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 18px;
+      background: #f3f7f4;
+      color: #24332b;
     }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      color: #617066;
+      font-size: 14px;
+      margin-top: 0;
+    }
+
+    .app-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .app-nav button {
+      flex: 1;
+      width: auto;
+      margin: 0;
+      padding: 13px 8px;
+      border: 1px solid #d7e5dc;
+      border-radius: 12px;
+      background: #fff;
+      color: #24533b;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .app-nav button.active {
+      background: #176b45;
+      color: #fff;
+      border-color: #176b45;
+    }
+
     .card {
-      background: white;
+      background: #fff;
       padding: 20px;
+      margin-bottom: 16px;
       border-radius: 16px;
-      box-shadow: 0 2px 12px #0001;
+      box-shadow: 0 2px 12px #0000000d;
     }
-    input, button {
-      box-sizing: border-box;
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    input,
+    .action-button {
       width: 100%;
       padding: 12px;
       margin-top: 10px;
-      border-radius: 8px;
+      border-radius: 9px;
       font-size: 16px;
     }
-    input { border: 1px solid #bbb; }
-    button {
+
+    input {
+      border: 1px solid #bbb;
+    }
+
+    .action-button {
       border: 0;
       background: #176b45;
       color: white;
+      font-weight: bold;
       cursor: pointer;
     }
+
     button:disabled {
       opacity: .6;
       cursor: wait;
     }
-    #reader { width: 100%; margin-top: 16px; }
+
+    #reader {
+      width: 100%;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
     #status {
       margin-top: 16px;
       padding: 12px;
-      background: #eef3f0;
-      border-radius: 8px;
+      background: #eef5f0;
+      border-radius: 9px;
       overflow-wrap: anywhere;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .muted {
+      color: #617066;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .dashboard-frame {
+      display: block;
+      width: 100%;
+      height: 78vh;
+      min-height: 600px;
+      border: 0;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+
+      header h1 {
+        font-size: 21px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .dashboard-frame {
+        min-height: 650px;
+      }
     }
   </style>
 </head>
+
 <body>
+  <header>
+    <h1>Absensi Haid Digital</h1>
+    <p>Sistem pencatatan dan rekap absensi siswi</p>
+  </header>
+
+  <!-- MENU UTAMA -->
   <nav class="app-nav">
-  <button
-    type="button"
-    id="menuScan"
-    class="active"
-    onclick="bukaHalaman('scan')">
-    📷 Scan QR
-  </button>
+    <button
+      type="button"
+      id="menuScan"
+      class="active"
+      onclick="bukaHalaman('scan')">
+      📷 Scan QR
+    </button>
 
-  <button
-    type="button"
-    id="menuDashboard"
-    onclick="bukaHalaman('dashboard')">
-    📊 Dashboard
-  </button>
-</nav>
+    <button
+      type="button"
+      id="menuDashboard"
+      onclick="bukaHalaman('dashboard')">
+      📊 Dashboard
+    </button>
+  </nav>
 
-<section id="scanPage" class="app-page">
-  <!-- Letakkan seluruh tampilan pemindai QR lama di sini -->
-</section>
+  <!-- HALAMAN SCAN: HANYA SATU PEMINDAI -->
+  <section id="scanPage">
+    <div class="card">
+      <h2>Scan QR Siswi</h2>
+      <p class="muted">
+        Masukkan PIN petugas, lalu pindai QR siswi.
+      </p>
 
-<section id="dashboardPage" class="app-page hidden">
-  <iframe
-    class="dashboard-frame"
-    title="Dashboard Absensi Haid"
-    src="https://script.google.com/macros/s/AKfycbyMDHp0R61Az23eiMjSjLP_tviHFkGkD6y4d0pY3HUO-gOvVptpYPPVQKpm5e8DBdd3hw/exec"
-    loading="lazy">
-  </iframe>
-</section>
+      <label for="pin">PIN Petugas</label>
+      <input
+        id="pin"
+        type="password"
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="Masukkan PIN petugas">
 
-<script>
-  function bukaHalaman(halaman) {
-    const scan = halaman === 'scan';
+      <button id="startBtn" class="action-button" type="button">
+        Buka Kamera
+      </button>
 
-    document.getElementById('scanPage')
-      .classList.toggle('hidden', !scan);
+      <div id="reader"></div>
 
-    document.getElementById('dashboardPage')
-      .classList.toggle('hidden', scan);
-
-    document.getElementById('menuScan')
-      .classList.toggle('active', scan);
-
-    document.getElementById('menuDashboard')
-      .classList.toggle('active', !scan);
-  }
-</script>
-  <div class="card">
-    <h2>Absensi Haid Digital</h2>
-    <p>Masukkan PIN petugas, lalu pindai QR siswi.</p>
-
-    <label for="pin">PIN Petugas</label>
-    <input id="pin" type="password"
-      inputmode="numeric" autocomplete="off"
-      placeholder="Masukkan PIN petugas">
-
-    <button id="startBtn">Buka Kamera</button>
-    <div id="reader"></div>
-    <div id="status" role="status" aria-live="polite">
-      Kamera belum dibuka.
+      <div id="status" role="status" aria-live="polite">
+        Kamera belum dibuka.
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- HALAMAN DASHBOARD -->
+  <section id="dashboardPage" class="hidden">
+    <iframe
+      class="dashboard-frame"
+      title="Dashboard Absensi Haid"
+      src="https://script.google.com/macros/s/AKfycbyMDHp0R61Az23eiMjSjLP_tviHFkGkD6y4d0pY3HUO-gOvVptpYPPVQKpm5e8DBdd3hw/exec"
+      loading="lazy">
+    </iframe>
+  </section>
 
   <script>
     const WEB_APP_URL =
@@ -172,6 +242,37 @@
     const startBtn = document.getElementById('startBtn');
     const pinInput = document.getElementById('pin');
 
+    // BERPINDAH MENU
+    async function bukaHalaman(halaman) {
+      const scan = halaman === 'scan';
+
+      document.getElementById('scanPage')
+        .classList.toggle('hidden', !scan);
+
+      document.getElementById('dashboardPage')
+        .classList.toggle('hidden', scan);
+
+      document.getElementById('menuScan')
+        .classList.toggle('active', scan);
+
+      document.getElementById('menuDashboard')
+        .classList.toggle('active', !scan);
+
+      // Hentikan kamera saat membuka dashboard
+      if (!scan && scanner && running) {
+        try {
+          await scanner.stop();
+        } catch (err) {
+          console.error('Kamera gagal dihentikan:', err);
+        }
+
+        running = false;
+        startBtn.textContent = 'Buka Kamera';
+        statusBox.textContent =
+          'Kamera dihentikan. Buka menu Scan QR untuk memindai kembali.';
+      }
+    }
+
     function bersihkanPermintaan() {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = null;
@@ -186,25 +287,10 @@
       startBtn.disabled = false;
     }
 
-    window.addEventListener('message', (event) => {
-      const data = event.data;
-
-      if (
-        !data ||
-        data.type !== 'ABSENSI_HAID_RESULT' ||
-        !requestNonce ||
-        data.nonce !== requestNonce
-      ) return;
-
-      bersihkanPermintaan();
-
-      statusBox.textContent = data.message ||
-        (data.ok ? 'Absensi berhasil dicatat.' : 'Absensi gagal.');
-
-      startBtn.textContent = 'Pindai QR Berikutnya';
-    });
-
+    // PERTAHANKAN ALUR PENCATATAN LAMA
     async function kirimAbsensi(token) {
+      if (processing) return;
+
       processing = true;
       startBtn.disabled = true;
       statusBox.textContent = 'QR terbaca. Mengirim data...';
@@ -215,11 +301,10 @@
           running = false;
         }
 
-        requestNonce = (
+        requestNonce =
           Date.now().toString(36) +
           Math.random().toString(36).slice(2) +
-          Math.random().toString(36).slice(2)
-        );
+          Math.random().toString(36).slice(2);
 
         responseFrame = document.createElement('iframe');
         responseFrame.name = 'absensiResponseFrame';
@@ -230,6 +315,9 @@
         requestForm = document.createElement('form');
         requestForm.method = 'POST';
         requestForm.action = WEB_APP_URL;
+
+        // Tetap menggunakan halaman hasil server,
+        // seperti alur yang sebelumnya sudah berhasil.
         requestForm.target = '_top';
         requestForm.style.display = 'none';
 
@@ -270,6 +358,7 @@
       }
     }
 
+    // BUKA KAMERA
     startBtn.addEventListener('click', async () => {
       if (running || processing) return;
 
@@ -279,7 +368,8 @@
         return;
       }
 
-      if (!navigator.mediaDevices?.getUserMedia) {
+      if (!navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
         statusBox.textContent =
           'Browser tidak mendukung akses kamera.';
         return;
@@ -293,7 +383,10 @@
 
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 230, height: 230 } },
+          {
+            fps: 10,
+            qrbox: { width: 230, height: 230 }
+          },
           async (token) => {
             if (processing) return;
             await kirimAbsensi(token);
@@ -303,14 +396,17 @@
 
         running = true;
         startBtn.disabled = false;
+        startBtn.textContent = 'Kamera Aktif';
         statusBox.textContent =
           'Kamera aktif. Arahkan QR ke kotak pemindai.';
+
       } catch (err) {
         running = false;
         startBtn.disabled = false;
+        startBtn.textContent = 'Buka Kamera';
         statusBox.textContent =
-          'Kamera gagal dibuka: ' + err.name +
-          ' — ' + err.message;
+          'Kamera gagal dibuka: ' +
+          err.name + ' — ' + err.message;
       }
     });
   </script>
