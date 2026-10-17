@@ -7,6 +7,48 @@
   <title>Absensi Haid Digital</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
+    /* Menu utama aplikasi */
+.app-nav {
+  display: flex;
+  gap: 8px;
+  margin: 0 auto 18px;
+  max-width: 700px;
+}
+
+.app-nav button {
+  flex: 1;
+  padding: 13px 8px;
+  border: 1px solid #d7e5dc;
+  border-radius: 12px;
+  background: #fff;
+  color: #24533b;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.app-nav button.active {
+  background: #176b45;
+  color: #fff;
+  border-color: #176b45;
+}
+
+.app-page {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.app-page.hidden {
+  display: none;
+}
+
+.dashboard-frame {
+  width: 100%;
+  height: 78vh;
+  min-height: 600px;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+}
     body {
       font-family: Arial, sans-serif;
       max-width: 520px;
@@ -51,6 +93,53 @@
   </style>
 </head>
 <body>
+  <nav class="app-nav">
+  <button
+    type="button"
+    id="menuScan"
+    class="active"
+    onclick="bukaHalaman('scan')">
+    📷 Scan QR
+  </button>
+
+  <button
+    type="button"
+    id="menuDashboard"
+    onclick="bukaHalaman('dashboard')">
+    📊 Dashboard
+  </button>
+</nav>
+
+<section id="scanPage" class="app-page">
+  <!-- Letakkan seluruh tampilan pemindai QR lama di sini -->
+</section>
+
+<section id="dashboardPage" class="app-page hidden">
+  <iframe
+    class="dashboard-frame"
+    title="Dashboard Absensi Haid"
+    src="https://script.google.com/macros/s/AKfycbyMDHp0R61Az23eiMjSjLP_tviHFkGkD6y4d0pY3HUO-gOvVptpYPPVQKpm5e8DBdd3hw/exec"
+    loading="lazy">
+  </iframe>
+</section>
+
+<script>
+  function bukaHalaman(halaman) {
+    const scan = halaman === 'scan';
+
+    document.getElementById('scanPage')
+      .classList.toggle('hidden', !scan);
+
+    document.getElementById('dashboardPage')
+      .classList.toggle('hidden', scan);
+
+    document.getElementById('menuScan')
+      .classList.toggle('active', scan);
+
+    document.getElementById('menuDashboard')
+      .classList.toggle('active', !scan);
+  }
+</script>
   <div class="card">
     <h2>Absensi Haid Digital</h2>
     <p>Masukkan PIN petugas, lalu pindai QR siswi.</p>
