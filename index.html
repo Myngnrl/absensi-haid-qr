@@ -29,19 +29,18 @@
       border-radius: 8px;
       font-size: 16px;
     }
-    input {
-      border: 1px solid #bbb;
-    }
+    input { border: 1px solid #bbb; }
     button {
       border: 0;
       background: #176b45;
       color: white;
       cursor: pointer;
     }
-    #reader {
-      width: 100%;
-      margin-top: 16px;
+    button:disabled {
+      opacity: .6;
+      cursor: wait;
     }
+    #reader { width: 100%; margin-top: 16px; }
     #status {
       margin-top: 16px;
       padding: 12px;
@@ -69,25 +68,121 @@
   </div>
 
   <script>
-    // Ganti alamat di bawah dengan Web app URL milikmu.
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyMDHp0R61Az23eiMjSjLP_tviHFkGkD6y4d0pY3HUO-gOvVptpYPPVQKpm5e8DBdd3hw/exec';
+    const WEB_APP_URL =
+      'https://script.google.com/macros/s/AKfycbyMDHp0R61Az23eiMjSjLP_tviHFkGkD6y4d0pY3HUO-gOvVptpYPPVQKpm5e8DBdd3hw/exec';
 
     let scanner = null;
     let running = false;
     let processing = false;
+    let requestNonce = null;
+    let timeoutId = null;
+    let requestForm = null;
+    let responseFrame = null;
 
     const statusBox = document.getElementById('status');
     const startBtn = document.getElementById('startBtn');
     const pinInput = document.getElementById('pin');
 
+    function bersihkanPermintaan() {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = null;
+
+      if (requestForm) requestForm.remove();
+      if (responseFrame) responseFrame.remove();
+
+      requestForm = null;
+      responseFrame = null;
+      requestNonce = null;
+      processing = false;
+      startBtn.disabled = false;
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+
+      if (
+        !data ||
+        data.type !== 'ABSENSI_HAID_RESULT' ||
+        !requestNonce ||
+        data.nonce !== requestNonce
+      ) return;
+
+      bersihkanPermintaan();
+
+      statusBox.textContent = data.message ||
+        (data.ok ? 'Absensi berhasil dicatat.' : 'Absensi gagal.');
+
+      startBtn.textContent = 'Pindai QR Berikutnya';
+    });
+
+    async function kirimAbsensi(token) {
+      processing = true;
+      startBtn.disabled = true;
+      statusBox.textContent = 'QR terbaca. Mengirim data...';
+
+      try {
+        if (scanner && running) {
+          await scanner.stop();
+          running = false;
+        }
+
+        requestNonce = (
+          Date.now().toString(36) +
+          Math.random().toString(36).slice(2) +
+          Math.random().toString(36).slice(2)
+        );
+
+        responseFrame = document.createElement('iframe');
+        responseFrame.name = 'absensiResponseFrame';
+        responseFrame.style.display = 'none';
+        responseFrame.title = 'Respons pencatatan';
+        document.body.appendChild(responseFrame);
+
+        requestForm = document.createElement('form');
+        requestForm.method = 'POST';
+        requestForm.action = WEB_APP_URL;
+        requestForm.target = responseFrame.name;
+        requestForm.style.display = 'none';
+
+        const fields = {
+          token: token,
+          pin: pinInput.value.trim(),
+          nonce: requestNonce
+        };
+
+        for (const [name, value] of Object.entries(fields)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          requestForm.appendChild(input);
+        }
+
+        document.body.appendChild(requestForm);
+        requestForm.submit();
+
+        statusBox.textContent =
+          'Permintaan dikirim. Menunggu hasil dari server...';
+
+        timeoutId = setTimeout(() => {
+          if (!requestNonce) return;
+
+          bersihkanPermintaan();
+          statusBox.textContent =
+            'Belum menerima jawaban server. Periksa koneksi dan LogHaid sebelum mencoba lagi.';
+          startBtn.textContent = 'Coba Lagi';
+        }, 20000);
+
+      } catch (err) {
+        bersihkanPermintaan();
+        statusBox.textContent =
+          'Pengiriman gagal: ' + err.message;
+        startBtn.textContent = 'Coba Lagi';
+      }
+    }
+
     startBtn.addEventListener('click', async () => {
       if (running || processing) return;
-
-      if (WEB_APP_URL === 'TEMPEL_WEB_APP_URL_DI_SINI') {
-        statusBox.textContent =
-          'Alamat Web App belum diisi di kode.';
-        return;
-      }
 
       if (!pinInput.value.trim()) {
         statusBox.textContent = 'Masukkan PIN petugas dahulu.';
@@ -102,6 +197,7 @@
       }
 
       try {
+        startBtn.disabled = true;
         statusBox.textContent = 'Meminta izin kamera...';
 
         scanner = new Html5Qrcode('reader');
@@ -111,53 +207,21 @@
           { fps: 10, qrbox: { width: 230, height: 230 } },
           async (token) => {
             if (processing) return;
-            processing = true;
-
-            statusBox.textContent =
-              'QR terbaca. Mengirim permintaan pencatatan...';
-
-            try {
-              await scanner.stop();
-              running = false;
-
-              // Mengirim token dan PIN tanpa membaca respons server.
-              // Hasil akhirnya harus diperiksa di Google Sheets.
-              await fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                  'Content-Type':
-                    'application/x-www-form-urlencoded;charset=UTF-8'
-                },
-                body: new URLSearchParams({
-                  token: token,
-                  pin: pinInput.value.trim()
-                })
-              });
-
-              statusBox.textContent =
-                'Permintaan dikirim. Periksa sheet LogHaid ' +
-                'untuk memastikan pencatatan berhasil.';
-              startBtn.textContent = 'Pindai QR Berikutnya';
-            } catch (err) {
-              statusBox.textContent =
-                'Pengiriman bermasalah. Periksa koneksi dan coba lagi.';
-              startBtn.textContent = 'Coba Lagi';
-            } finally {
-              processing = false;
-            }
+            await kirimAbsensi(token);
           },
           () => {}
         );
 
         running = true;
+        startBtn.disabled = false;
         statusBox.textContent =
           'Kamera aktif. Arahkan QR ke kotak pemindai.';
       } catch (err) {
+        running = false;
+        startBtn.disabled = false;
         statusBox.textContent =
           'Kamera gagal dibuka: ' + err.name +
           ' — ' + err.message;
-        running = false;
       }
     });
   </script>
